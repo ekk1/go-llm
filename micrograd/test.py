@@ -25,5 +25,8 @@ f.backward()
 print(a.data, b.data, c.data)
 print(a.grad, b.grad)
 
-
-
+cc = torch.Tensor([-4.0]).double()
+cc.requires_grad = True
+bb = cc.tanh()
+bb.backward()
+print(bb.grad)

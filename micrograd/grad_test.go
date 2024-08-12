@@ -2,6 +2,7 @@ package micrograd
 
 import (
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -25,6 +26,16 @@ func TestScalar(t *testing.T) {
 	fmt.Println(c.Div(b))
 	fmt.Println(b.Neg())
 
+	fmt.Println(a.Tanh())
+	fmt.Println(math.Tanh(-4.0))
+	fmt.Println(b.Tanh())
+	fmt.Println(math.Tanh(3.0))
+	fmt.Println(c.Tanh())
+	fmt.Println(math.Tanh(8.0))
+
+	o := a.Tanh()
+	o.Backward()
+	fmt.Println(a.Grad)
 }
 
 func TestBackward(t *testing.T) {

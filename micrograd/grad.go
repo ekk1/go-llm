@@ -36,9 +36,9 @@ func (s *Scalar[D]) Add(other *Scalar[D]) *Scalar[D] {
 		Operation: "+",
 		Grad:      0,
 		Parents:   []*Scalar[D]{s, other},
-		BackwardFunc: func(out *Scalar[D]) {
-			out.Parents[0].Grad += out.Grad
-			out.Parents[1].Grad += out.Grad
+		BackwardFunc: func(v *Scalar[D]) {
+			v.Parents[0].Grad += v.Grad
+			v.Parents[1].Grad += v.Grad
 		},
 	}
 	return out
@@ -50,9 +50,26 @@ func (s *Scalar[D]) Mul(other *Scalar[D]) *Scalar[D] {
 		Operation: "*",
 		Grad:      0,
 		Parents:   []*Scalar[D]{s, other},
-		BackwardFunc: func(out *Scalar[D]) {
-			out.Parents[0].Grad += out.Parents[1].Data * out.Grad
-			out.Parents[1].Grad += out.Parents[0].Data * out.Grad
+		BackwardFunc: func(v *Scalar[D]) {
+			v.Parents[0].Grad += v.Parents[1].Data * v.Grad
+			v.Parents[1].Grad += v.Parents[0].Data * v.Grad
+		},
+	}
+	return out
+}
+
+func (s *Scalar[D]) Pow(p float64) *Scalar[D] {
+	out := &Scalar[D]{
+		Data:      D(math.Pow(float64(s.Data), p)),
+		Operation: fmt.Sprintf("**%.4f", p),
+		Grad:      0,
+		Parents:   []*Scalar[D]{s},
+		BackwardFunc: func(v *Scalar[D]) {
+			v.Parents[0].Grad += D(
+				(p * math.Pow(
+					float64(s.Data),
+					p-1,
+				))) * v.Grad
 		},
 	}
 	return out
@@ -70,18 +87,16 @@ func (s *Scalar[D]) Div(other *Scalar[D]) *Scalar[D] {
 	return s.Mul(other.Pow(-1))
 }
 
-func (s *Scalar[D]) Pow(p float64) *Scalar[D] {
+func (s *Scalar[D]) Tanh() *Scalar[D] {
+	x := float64(s.Data)
+	t := (math.Exp(x*2) - 1) / (math.Exp(2*x) + 1)
 	out := &Scalar[D]{
-		Data:      D(math.Pow(float64(s.Data), p)),
-		Operation: fmt.Sprintf("**%.4f", p),
+		Data:      D(t),
+		Operation: "tanh",
 		Grad:      0,
 		Parents:   []*Scalar[D]{s},
-		BackwardFunc: func(out *Scalar[D]) {
-			out.Parents[0].Grad += D(
-				(p * math.Pow(
-					float64(s.Data),
-					p-1,
-				))) * out.Grad
+		BackwardFunc: func(v *Scalar[D]) {
+			v.Parents[0].Grad += (1 - D(math.Pow(t, 2))) * v.Grad
 		},
 	}
 	return out
