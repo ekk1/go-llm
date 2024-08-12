@@ -2,13 +2,16 @@ package micrograd
 
 import (
 	"fmt"
+	"math"
 	"slices"
 )
 
+// Make micrograd more generic for different data types
 type DataType interface {
 	int8 | int16 | int64 | float64 | float32
 }
 
+// Scalar is one dimentional data
 type Scalar[D DataType] struct {
 	Data         D
 	Grad         D
@@ -18,6 +21,7 @@ type Scalar[D DataType] struct {
 	Label        string
 }
 
+// NewScalar returns a scalar with give value (and type)
 func NewScalar[D DataType](value D) *Scalar[D] {
 	return &Scalar[D]{
 		Data: value,
@@ -25,6 +29,7 @@ func NewScalar[D DataType](value D) *Scalar[D] {
 	}
 }
 
+// Add adds another scalar, return a new scalar, and add two components to the Parents list
 func (s *Scalar[D]) Add(other *Scalar[D]) *Scalar[D] {
 	out := &Scalar[D]{
 		Data:      s.Data + other.Data,
@@ -53,6 +58,24 @@ func (s *Scalar[D]) Mul(other *Scalar[D]) *Scalar[D] {
 	return out
 }
 
+func (s *Scalar[D]) Pow(p float64) *Scalar[D] {
+	out := &Scalar[D]{
+		Data:      D(math.Pow(float64(s.Data), p)),
+		Operation: fmt.Sprintf("**%.4f", p),
+		Grad:      0,
+		Parents:   []*Scalar[D]{s},
+		BackwardFunc: func(out *Scalar[D]) {
+			out.Parents[0].Grad += D(
+				(p * math.Pow(
+					float64(s.Data),
+					p-1,
+				))) * out.Grad
+		},
+	}
+	return out
+}
+
+// Backward runs the backward pass through the whole chain, calcuating the grad of all scalars
 func (s *Scalar[D]) Backward() {
 	topo := []*Scalar[D]{}
 	visited := map[*Scalar[D]]struct{}{}
@@ -76,14 +99,17 @@ func (s *Scalar[D]) Backward() {
 	}
 }
 
+// Print show a simple expresstion of how s is made
 func (s *Scalar[D]) Print() {
 	if s.Parents != nil {
-		fmt.Printf("%s [v:%v g:%v]: %s [v:%v g:%v] %s %s[v:%v g:%v]\n",
-			s.Label, s.Data, s.Grad,
-			s.Parents[0].Label, s.Parents[0].Data, s.Parents[0].Grad,
-			s.Operation,
-			s.Parents[1].Label, s.Parents[1].Data, s.Parents[1].Grad,
-		)
+		if len(s.Parents) > 1 {
+			fmt.Printf("%s [v:%v g:%v]: %s [v:%v g:%v] %s %s[v:%v g:%v]\n",
+				s.Label, s.Data, s.Grad,
+				s.Parents[0].Label, s.Parents[0].Data, s.Parents[0].Grad,
+				s.Operation,
+				s.Parents[1].Label, s.Parents[1].Data, s.Parents[1].Grad,
+			)
+		}
 	}
 	for _, p := range s.Parents {
 		p.Print()
