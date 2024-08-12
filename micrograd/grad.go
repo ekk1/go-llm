@@ -58,6 +58,18 @@ func (s *Scalar[D]) Mul(other *Scalar[D]) *Scalar[D] {
 	return out
 }
 
+func (s *Scalar[D]) Neg() *Scalar[D] {
+	return s.Mul(NewScalar[D](-1))
+}
+
+func (s *Scalar[D]) Sub(other *Scalar[D]) *Scalar[D] {
+	return s.Add(other.Neg())
+}
+
+func (s *Scalar[D]) Div(other *Scalar[D]) *Scalar[D] {
+	return s.Mul(other.Pow(-1))
+}
+
 func (s *Scalar[D]) Pow(p float64) *Scalar[D] {
 	out := &Scalar[D]{
 		Data:      D(math.Pow(float64(s.Data), p)),

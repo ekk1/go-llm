@@ -5,7 +5,29 @@ import (
 	"testing"
 )
 
-func TestAdd(t *testing.T) {
+func TestScalar(t *testing.T) {
+	a := NewScalar(-4.0)
+	b := NewScalar(3.0)
+	c := NewScalar(8.0)
+
+	fmt.Println(a.Add(b))
+	fmt.Println(b.Add(c))
+	fmt.Println(a.Pow(3))
+	fmt.Println(b.Pow(2))
+	fmt.Println(b.Pow(-1))
+	fmt.Println(b.Pow(0.5))
+	fmt.Println(NewScalar(2.0).Pow(0.5))
+	fmt.Println(a.Mul(b))
+	fmt.Println(a.Mul(c))
+	fmt.Println(a.Sub(b))
+	fmt.Println(b.Sub(c))
+	fmt.Println(c.Div(a))
+	fmt.Println(c.Div(b))
+	fmt.Println(b.Neg())
+
+}
+
+func TestBackward(t *testing.T) {
 	a := NewScalar[float32](-4.0)
 	b := NewScalar[float32](2.0)
 	a.Label = "a"
@@ -29,11 +51,11 @@ func TestAdd(t *testing.T) {
 	f := e.Pow(2)
 	f.Label = "f"
 
-	f.Print()
+	// f.Print()
 
 	f.Backward()
 
 	fmt.Println("After backward pass")
 
-	f.Print()
+	// f.Print()
 }
