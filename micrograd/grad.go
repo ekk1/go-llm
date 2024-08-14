@@ -102,6 +102,27 @@ func (s *Scalar[D]) Tanh() *Scalar[D] {
 	return out
 }
 
+func (s *Scalar[D]) ReLU() *Scalar[D] {
+	t := D(0)
+	if s.Data > 0 {
+		t = s.Data
+	}
+	out := &Scalar[D]{
+		Data:      t,
+		Operation: "ReLU",
+		Grad:      0,
+		Parents:   []*Scalar[D]{s},
+		BackwardFunc: func(v *Scalar[D]) {
+			if v.Data > 0 {
+				v.Parents[0].Grad += v.Grad
+			} else {
+				v.Parents[0].Grad = 0
+			}
+		},
+	}
+	return out
+}
+
 // Backward runs the backward pass through the whole chain, calcuating the grad of all scalars
 func (s *Scalar[D]) Backward() {
 	topo := []*Scalar[D]{}
@@ -135,6 +156,12 @@ func (s *Scalar[D]) Print() {
 				s.Parents[0].Label, s.Parents[0].Data, s.Parents[0].Grad,
 				s.Operation,
 				s.Parents[1].Label, s.Parents[1].Data, s.Parents[1].Grad,
+			)
+		} else {
+			fmt.Printf("%s [v:%v g:%v]: %s [v:%v g:%v] %s\n",
+				s.Label, s.Data, s.Grad,
+				s.Parents[0].Label, s.Parents[0].Data, s.Parents[0].Grad,
+				s.Operation,
 			)
 		}
 	}
