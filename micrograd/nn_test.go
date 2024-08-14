@@ -1,7 +1,9 @@
 package micrograd
 
 import (
+	"encoding/binary"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -45,5 +47,117 @@ func TestTrain(t *testing.T) {
 		}
 
 		fmt.Println(step, lossVal.Data)
+	}
+}
+
+func ReadMNISTImage(p string) [][][]byte {
+	imageList := [][][]byte{}
+	f, err := os.Open(p)
+	defer f.Close()
+	if err != nil {
+		panic(err)
+	}
+	type Header struct {
+		Magic uint32
+		Size  uint32
+		Rows  uint32
+		Cols  uint32
+	}
+	h := &Header{}
+	binary.Read(f, binary.BigEndian, h)
+	if h.Magic != 2051 {
+		panic("Wrong magic for image")
+	}
+	for p := 0; p < int(h.Size); p++ {
+		imgTemp := [][]byte{}
+		for i := 0; i < int(h.Cols); i++ {
+			rowData := make([]byte, h.Rows)
+			f.Read(rowData)
+			imgTemp = append(imgTemp, rowData)
+		}
+		imageList = append(imageList, imgTemp)
+	}
+	return imageList
+}
+
+func ReadMNISTLabel(p string) []byte {
+	labelList := []byte{}
+	f, err := os.Open(p)
+	defer f.Close()
+	if err != nil {
+		panic(err)
+	}
+	type Header struct {
+		Magic uint32
+		Size  uint32
+	}
+	h := &Header{}
+	binary.Read(f, binary.BigEndian, h)
+	if h.Magic != 2049 {
+		panic("Wrong magic for image")
+	}
+	for p := 0; p < int(h.Size); p++ {
+		labelData := make([]byte, 1)
+		f.Read(labelData)
+		labelList = append(labelList, labelData[0])
+	}
+	return labelList
+}
+
+func TestMNIST(t *testing.T) {
+	train_data_path := "../mnist/train-images.idx3-ubyte"
+	train_label_path := "../mnist/train-labels.idx1-ubyte"
+	imageList := ReadMNISTImage(train_data_path)
+	labelList := ReadMNISTLabel(train_label_path)
+	if len(imageList) != len(labelList) {
+		panic("Mismatch")
+	}
+	//fmt.Println(labelList[0])
+	m := NewMLP[float32](784, []int64{512, 512, 10})
+	//fmt.Println(m.Layers[0].Neurons[0])
+	yPredict := []*Scalar[float32]{}
+	loss := func(oo, pd []*Scalar[float32]) *Scalar[float32] {
+		sum := NewScalar[float32](0.0)
+		for i := 0; i < len(oo); i++ {
+			sum = sum.Add(oo[i].Sub(pd[i]).Pow(2.0).Pow(0.5))
+		}
+		return sum
+	}
+	//for i := 0; i < len(imageList); i++ {
+	for i := 0; i < 1; i++ {
+		yTarget := make([]*Scalar[float32], 10)
+		for n := 0; n < 10; n++ {
+			yTarget[n] = NewScalar[float32](0)
+		}
+		yTarget[int(labelList[i])] = NewScalar[float32](1)
+
+		inputData := []*Scalar[float32]{}
+		for _, row := range imageList[i] {
+			for _, col := range row {
+				inputData = append(inputData, NewScalar[float32](float32(col)/256))
+			}
+		}
+
+		for step := 0; step < 10; step++ {
+			yPredict = nil
+			yPredict = m.Apply(inputData)
+			for _, v := range yTarget {
+				fmt.Println(v.Data)
+			}
+			for _, v := range yPredict {
+				fmt.Println(v.Data)
+			}
+			lossVal := loss(yTarget, yPredict)
+
+			m.ZeroGrad()
+			lossVal.Backward()
+
+			lossVal.Print()
+
+			for _, p := range m.Parameters() {
+				p.Data += -0.1 * p.Grad
+			}
+			fmt.Println(step, lossVal.Data)
+		}
 	}
 }

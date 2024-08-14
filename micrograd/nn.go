@@ -98,9 +98,9 @@ func NewMLP[D DataType](nin int64, layerOut []int64) *MLP[D] {
 	sizeList = append(sizeList, layerOut...)
 	for i := 0; i < len(layerOut); i++ {
 		l := NewLayer[D](sizeList[i], sizeList[i+1])
-		if i != len(layerOut)-1 {
-			l.SetNonLinear("tanh")
-		}
+		//if i != len(layerOut)-1 {
+		l.SetNonLinear("tanh")
+		//}
 		m.Layers = append(m.Layers, l)
 	}
 	return m
