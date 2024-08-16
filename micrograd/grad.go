@@ -123,6 +123,19 @@ func (s *Scalar[D]) ReLU() *Scalar[D] {
 	return out
 }
 
+func (s *Scalar[D]) Log() *Scalar[D] {
+	out := &Scalar[D]{
+		Data:      D(math.Log(float64(s.Data))),
+		Operation: "log",
+		Grad:      0,
+		Parents:   []*Scalar[D]{s},
+		BackwardFunc: func(v *Scalar[D]) {
+			v.Parents[0].Grad += (1 / s.Data) * v.Grad
+		},
+	}
+	return out
+}
+
 // Backward runs the backward pass through the whole chain, calcuating the grad of all scalars
 func (s *Scalar[D]) Backward() {
 	topo := []*Scalar[D]{}

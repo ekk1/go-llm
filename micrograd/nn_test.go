@@ -3,6 +3,7 @@ package micrograd
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
 	"testing"
 )
@@ -113,18 +114,22 @@ func TestMNIST(t *testing.T) {
 		panic("Mismatch")
 	}
 	//fmt.Println(labelList[0])
-	m := NewMLP[float32](784, []int64{512, 512, 10})
+	m := NewMLP[float32](784, []int64{512, 384, 10})
 	//fmt.Println(m.Layers[0].Neurons[0])
 	yPredict := []*Scalar[float32]{}
 	loss := func(oo, pd []*Scalar[float32]) *Scalar[float32] {
 		sum := NewScalar[float32](0.0)
+		epsilon := float32(1e-12)
 		for i := 0; i < len(oo); i++ {
-			sum = sum.Add(oo[i].Sub(pd[i]).Pow(2.0).Pow(0.5))
+			target := oo[i].Data
+			prediction := pd[i].Data
+			// Add a small epsilon to prevent log(0)
+			sum = sum.Add(NewScalar(target * float32(math.Log(float64(prediction+epsilon)))))
 		}
 		return sum
 	}
 	//for i := 0; i < len(imageList); i++ {
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 3; i++ {
 		yTarget := make([]*Scalar[float32], 10)
 		for n := 0; n < 10; n++ {
 			yTarget[n] = NewScalar[float32](0)
@@ -134,11 +139,11 @@ func TestMNIST(t *testing.T) {
 		inputData := []*Scalar[float32]{}
 		for _, row := range imageList[i] {
 			for _, col := range row {
-				inputData = append(inputData, NewScalar(float32(col)/256))
+				inputData = append(inputData, NewScalar(float32(col)/255.0))
 			}
 		}
 
-		for step := 0; step < 5; step++ {
+		for step := 0; step < 30; step++ {
 			yPredict = nil
 			yPredict = m.Apply(inputData)
 			for i := 0; i < len(yTarget); i++ {
@@ -152,13 +157,13 @@ func TestMNIST(t *testing.T) {
 			//lossVal.Print()
 
 			for _, p := range m.Parameters() {
-				if p.Grad > 1.0e3 {
-					p.Grad = 1.0e3
-				}
-				if p.Grad < -1.0e3 {
-					p.Grad = -1.0e3
-				}
-				p.Data += -0.005 * p.Grad
+				//if p.Grad > 1.0e3 {
+				//p.Grad = 1.0e3
+				//}
+				//if p.Grad < -1.0e3 {
+				//p.Grad = -1.0e3
+				//}
+				p.Data += -0.05 * p.Grad
 			}
 			fmt.Println("Step", step, lossVal.Data)
 		}
