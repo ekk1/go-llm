@@ -134,30 +134,33 @@ func TestMNIST(t *testing.T) {
 		inputData := []*Scalar[float32]{}
 		for _, row := range imageList[i] {
 			for _, col := range row {
-				inputData = append(inputData, NewScalar[float32](float32(col)/256))
+				inputData = append(inputData, NewScalar(float32(col)/256))
 			}
 		}
 
-		for step := 0; step < 10; step++ {
+		for step := 0; step < 5; step++ {
 			yPredict = nil
 			yPredict = m.Apply(inputData)
-			for _, v := range yTarget {
-				fmt.Println(v.Data)
-			}
-			for _, v := range yPredict {
-				fmt.Println(v.Data)
+			for i := 0; i < len(yTarget); i++ {
+				fmt.Println(yTarget[i].Data, yPredict[i].Data)
 			}
 			lossVal := loss(yTarget, yPredict)
 
 			m.ZeroGrad()
 			lossVal.Backward()
 
-			lossVal.Print()
+			//lossVal.Print()
 
 			for _, p := range m.Parameters() {
-				p.Data += -0.1 * p.Grad
+				if p.Grad > 1.0e3 {
+					p.Grad = 1.0e3
+				}
+				if p.Grad < -1.0e3 {
+					p.Grad = -1.0e3
+				}
+				p.Data += -0.005 * p.Grad
 			}
-			fmt.Println(step, lossVal.Data)
+			fmt.Println("Step", step, lossVal.Data)
 		}
 	}
 }
